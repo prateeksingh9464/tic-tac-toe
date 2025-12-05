@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe - Prateek</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        /* --- Base Styles --- */
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212; /* Darker background */
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding-bottom: 60px; /* Space for footer */
+            box-sizing: border-box;
+        }
+
+        h1 { margin-bottom: 20px; color: #61dafb; letter-spacing: 1px; }
+
+        /* --- Main Container --- */
+        .container {
+            background: #1e1e1e;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            text-align: center;
+            width: 85%;
+            max-width: 400px;
+            border: 1px solid #333;
+            transition: all 0.3s ease;
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            background: linear-gradient(135deg, #61dafb 0%, #21a1f1 100%);
+            border: none;
+            padding: 12px 20px;
+            margin: 8px 0;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            color: #000;
+            font-weight: bold;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(33, 161, 241, 0.4); }
+        .btn:active { transform: translateY(0); }
+        
+        .btn-secondary { background: #333; color: #ccc; }
+        .btn-secondary:hover { background: #444; color: #fff; box-shadow: none; }
+
+        /* --- Game Board --- */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+            display: none; 
+        }
+
+        .cell {
+            width: 80px;
+            height: 80px;
+            background: #2a2a2a;
+            border: 2px solid #333;
+            font-size: 40px;
+            color: white;
+            cursor: pointer;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .cell:hover { background: #333; border-color: #444; }
+        .cell.x { color: #ff4d4d; text-shadow: 0 0 10px rgba(255, 77, 77, 0.5); }
+        .cell.o { color: #4dff88; text-shadow: 0 0 10px rgba(77, 255, 136, 0.5); }
+
+        /* --- Inputs & Utilities --- */
+        #status { margin-bottom: 15px; font-weight: bold; font-size: 1.2rem; }
+        input {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #252525;
+            color: white;
+            width: 100%;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            font-family: monospace;
+        }
+        input:focus { outline: 2px solid #61dafb; border-color: transparent; }
+        
+        .hidden { display: none !important; }
+        
+        /* Online Menu Styles */
+        #online-setup { text-align: left; font-size: 0.9rem; color: #aaa; }
+        .id-box { 
+            background: #000; padding: 8px; 
+            font-family: 'Courier New', monospace; border-radius: 4px; 
+            user-select: all; color: #4dff88; letter-spacing: 1px;
+            display: block; margin-top: 5px; word-break: break-all;
+        }
+
+        /* --- FOOTER / PROFESSIONAL FOOTPRINT --- */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 0;
+            text-align: center;
+            background: rgba(18, 18, 18, 0.9);
+            backdrop-filter: blur(5px);
+            border-top: 1px solid #333;
+            font-size: 14px;
+            color: #888;
+            z-index: 100;
+        }
+
+        .footer span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .heart {
+            color: #e25555;
+            animation: beat 1.5s infinite ease-in-out;
+            display: inline-block;
+        }
+
+        .dev-name {
+            color: #fff;
+            font-weight: 600;
+            text-decoration: none;
+            position: relative;
+        }
+
+        .code-icon { margin-left: 8px; opacity: 0.5; }
+
+        @keyframes beat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* Mobile Adjustment for Board */
+        @media (max-width: 400px) {
+            .cell { width: 70px; height: 70px; font-size: 32px; }
+            .container { width: 90%; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="menu">
+        <h1>Tic Tac Toe</h1>
+        <button class="btn" onclick="startLocal()">Play Local (Pass & Play)</button>
+        <button class="btn" onclick="showOnlineMenu()">Play Online (Real Time)</button>
+    </div>
+
+    <div class="container hidden" id="online-menu">
+        <h2>Online Setup</h2>
+        <div id="online-setup">
+            <p>1. <b>Host:</b> Click "Create", copy ID, send to friend.</p>
+            <p>2. <b>Friend:</b> Paste ID, click "Join".</p>
+            
+            <div id="host-section" style="margin-top:15px;">
+                <button class="btn" onclick="createGame()">Create Game (Host)</button>
+                <p id="my-id-display" class="hidden">Your ID: <span id="my-id" class="id-box">...</span></p>
+            </div>
+
+            <div style="display: flex; align-items: center; margin: 15px 0; color: #555;">
+                <div style="flex:1; height:1px; background:#444;"></div>
+                <span style="padding: 0 10px; font-size: 12px;">OR</span>
+                <div style="flex:1; height:1px; background:#444;"></div>
+            </div>
+
+            <div id="join-section">
+                <input type="text" id="friend-id" placeholder="Paste Friend's ID here...">
+                <button class="btn btn-secondary" onclick="joinGame()">Join Game</button>
+            </div>
+            <p id="connection-status" style="color: #ffd700; margin-top: 10px; font-size: 0.9rem; min-height: 20px;"></p>
+        </div>
+        <button class="btn btn-secondary" style="margin-top:15px" onclick="location.reload()">Back</button>
+    </div>
+
+    <div class="container hidden" id="game-screen">
+        <h2 id="status">Player X's Turn</h2>
+        <div class="board" id="board">
+            <div class="cell" onclick="makeMove(0)"></div>
+            <div class="cell" onclick="makeMove(1)"></div>
+            <div class="cell" onclick="makeMove(2)"></div>
+            <div class="cell" onclick="makeMove(3)"></div>
+            <div class="cell" onclick="makeMove(4)"></div>
+            <div class="cell" onclick="makeMove(5)"></div>
+            <div class="cell" onclick="makeMove(6)"></div>
+            <div class="cell" onclick="makeMove(7)"></div>
+            <div class="cell" onclick="makeMove(8)"></div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary" onclick="resetGame()">Restart</button>
+            <button class="btn btn-secondary" onclick="location.reload()">Exit</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <span>
+            Designed & Developed with <span class="heart">❤️</span> by 
+            <span class="dev-name">Prateek</span>
+        </span>
+    </div>
+
+    <script>
+        // --- Game Variables ---
+        let board = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X';
+        let gameActive = true;
+        let mode = 'local'; 
+        let myRole = 'X'; 
+        let conn = null;  
+        let peer = null;
+
+        const statusDisplay = document.getElementById('status');
+        const cells = document.querySelectorAll('.cell');
+
+        // --- Core Game Logic ---
+        function makeMove(index) {
+            if (board[index] !== '' || !gameActive) return;
+            if (mode === 'online' && currentPlayer !== myRole) return;
+
+            updateBoard(index, currentPlayer);
+            
+            if (mode === 'online' && conn) {
+                conn.send({ type: 'move', index: index, player: currentPlayer });
+            }
+
+            checkResult();
+        }
+
+        function updateBoard(index, player) {
+            board[index] = player;
+            cells[index].innerText = player;
+            cells[index].classList.add(player.toLowerCase());
+        }
+
+        function checkResult() {
+            const winConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+
+            let roundWon = false;
+            for (let i = 0; i < 8; i++) {
+                const [a, b, c] = winConditions[i];
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    roundWon = true;
+                    break;
+                }
+            }
+
+            if (roundWon) {
+                statusDisplay.innerText = `Player ${currentPlayer} Wins!`;
+                statusDisplay.style.color = currentPlayer === 'X' ? '#ff4d4d' : '#4dff88';
+                gameActive = false;
+                return;
+            }
+
+            if (!board.includes('')) {
+                statusDisplay.innerText = "It's a Draw!";
+                statusDisplay.style.color = '#fff';
+                gameActive = false;
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            statusDisplay.style.color = '#e0e0e0';
+            
+            if (mode === 'local') {
+                statusDisplay.innerText = `Player ${currentPlayer}'s Turn`;
+            } else {
+                statusDisplay.innerText = (currentPlayer === myRole) ? "Your Turn" : "Opponent's Turn";
+            }
+        }
+
+        function resetGame() {
+            board = ['', '', '', '', '', '', '', '', ''];
+            gameActive = true;
+            currentPlayer = 'X';
+            statusDisplay.style.color = '#e0e0e0';
+            cells.forEach(cell => {
+                cell.innerText = '';
+                cell.classList.remove('x', 'o');
+            });
+            
+            if (mode === 'local') {
+                statusDisplay.innerText = "Player X's Turn";
+            } else {
+                statusDisplay.innerText = (myRole === 'X') ? "Your Turn" : "Opponent's Turn";
+                if (mode === 'online' && conn) conn.send({ type: 'reset' });
+            }
+        }
+
+        // --- Menu Logic ---
+        function startLocal() {
+            mode = 'local';
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('board').style.display = 'grid';
+            statusDisplay.innerText = "Player X's Turn";
+        }
+
+        function showOnlineMenu() {
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('online-menu').classList.remove('hidden');
+        }
+
+        // --- Online Logic (PeerJS) ---
+        function initPeer() {
+            peer = new Peer(); 
+            peer.on('open', (id) => {
+                document.getElementById('my-id').innerText = id;
+                document.getElementById('my-id-display').classList.remove('hidden');
+            });
+            peer.on('connection', (connection) => {
+                setupConnection(connection);
+                myRole = 'X';
+                startGameOnline();
+            });
+            peer.on('error', (err) => alert("Connection Error: " + err));
+        }
+
+        function createGame() {
+            document.getElementById('connection-status').innerText = "Generating Room ID...";
+            initPeer();
+        }
+
+        function joinGame() {
+            const friendId = document.getElementById('friend-id').value.trim();
+            if (!friendId) return alert("Please enter the ID first!");
+            
+            document.getElementById('connection-status').innerText = "Connecting to peer...";
+            peer = new Peer();
+            
+            peer.on('open', () => {
+                const connection = peer.connect(friendId);
+                connection.on('open', () => {
+                    setupConnection(connection);
+                    myRole = 'O';
+                    startGameOnline();
+                });
+                connection.on('error', (err) => alert("Connection Failed"));
+            });
+        }
+
+        function setupConnection(connection) {
+            conn = connection;
+            conn.on('data', (data) => {
+                if (data.type === 'move') {
+                    updateBoard(data.index, data.player);
+                    checkResult();
+                } else if (data.type === 'reset') {
+                    board = ['', '', '', '', '', '', '', '', ''];
+                    gameActive = true;
+                    currentPlayer = 'X';
+                    statusDisplay.style.color = '#e0e0e0';
+                    cells.forEach(cell => {
+                        cell.innerText = '';
+                        cell.classList.remove('x', 'o');
+                    });
+                    statusDisplay.innerText = (myRole === 'X') ? "Your Turn" : "Opponent's Turn";
+                }
+            });
+        }
+
+        function startGameOnline() {
+            mode = 'online';
+            document.getElementById('online-menu').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('board').style.display = 'grid';
+            statusDisplay.innerText = (myRole === 'X') ? "Your Turn" : "Waiting for Opponent...";
+        }
+    </script>
+</body>
+</html>
